@@ -1,6 +1,6 @@
 import os
 import requests
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Path
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
@@ -263,6 +263,34 @@ def serve_index():
     if os.path.exists(index_path):
         return FileResponse(index_path)
     return JSONResponse({"message": "Server is running. index.html not found."})
+
+@app.api_route("/{full_path:path}", methods=["GET", "POST", "OPTIONS"])
+async def universal_route_handler(request: Request, full_path: str):
+    clean_path = (full_path or request.url.path).lower().strip("/")
+    
+    if "sample-passages" in clean_path:
+        return get_sample_passages()
+    
+    elif "config-status" in clean_path:
+        return get_config_status()
+        
+    elif "test-key" in clean_path:
+        body = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass
+        return test_key(TestKeyRequest(**body))
+        
+    elif "generate" in clean_path:
+        body = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass
+        return generate_problems(GenerateRequest(**body))
+        
+    return JSONResponse({"detail": f"Path '{request.url.path}' not handled"}, status_code=404)
 
 if __name__ == "__main__":
     import uvicorn
