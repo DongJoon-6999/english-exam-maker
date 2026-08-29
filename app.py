@@ -144,6 +144,15 @@ def generate_problems(req: GenerateRequest):
     provider = req.provider.lower()
     api_key = (req.api_key or "").strip()
 
+    # Fallback to system environment variables if API key is not passed in request
+    if not api_key:
+        if provider == "gemini":
+            api_key = os.getenv("GEMINI_API_KEY", "").strip()
+        elif provider == "claude":
+            api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+        elif provider == "openai":
+            api_key = os.getenv("OPENAI_API_KEY", "").strip()
+
     # If no API key provided or provider is mock, fallback to smart mock generator
     if not api_key or provider == "mock":
         try:
