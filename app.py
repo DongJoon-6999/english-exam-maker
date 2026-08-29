@@ -64,10 +64,16 @@ Over time, this loop becomes more and more automatic until the cue and reward be
 DEFAULT_GEMINI_KEY = os.getenv("GEMINI_API_KEY", "")
 
 @app.get("/api/sample-passages")
+@app.get("/sample-passages")
+@app.get("/api/index.py/api/sample-passages")
+@app.get("/api/index.py/sample-passages")
 def get_sample_passages():
     return {"samples": SAMPLE_PASSAGES}
 
 @app.get("/api/config-status")
+@app.get("/config-status")
+@app.get("/api/index.py/api/config-status")
+@app.get("/api/index.py/config-status")
 def get_config_status():
     gemini_key = os.getenv("GEMINI_API_KEY", "") or DEFAULT_GEMINI_KEY
     claude_key = os.getenv("ANTHROPIC_API_KEY", "")
@@ -81,6 +87,9 @@ def get_config_status():
     }
 
 @app.post("/api/test-key")
+@app.post("/test-key")
+@app.post("/api/index.py/api/test-key")
+@app.post("/api/index.py/test-key")
 def test_key(req: TestKeyRequest):
     provider = req.provider.lower()
     if provider == "mock":
@@ -166,6 +175,9 @@ def test_key(req: TestKeyRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/generate")
+@app.post("/generate")
+@app.post("/api/index.py/api/generate")
+@app.post("/api/index.py/generate")
 def generate_problems(req: GenerateRequest):
     if not req.passage or len(req.passage.strip()) < 20:
         raise HTTPException(status_code=400, detail="영어 지문을 최소 20자 이상 입력해 주세요.")
