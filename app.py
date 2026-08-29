@@ -147,7 +147,7 @@ def generate_problems(req: GenerateRequest):
     # If no API key provided or provider is mock, fallback to smart mock generator
     if not api_key or provider == "mock":
         try:
-            result = generate_mock_candidates(req.passage, req.target_grammar, req.target_vocab)
+            result = generate_mock_candidates(req.passage, req.target_grammar, req.target_vocab, candidate_count=req.candidate_count or 3)
             return {"success": True, "provider": "mock", "data": result}
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Mock 생성 오류: {str(e)}")
