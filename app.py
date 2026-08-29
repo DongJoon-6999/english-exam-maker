@@ -234,16 +234,23 @@ def generate_problems(req: GenerateRequest):
         raise HTTPException(status_code=500, detail=f"문제 생성 실패: {str(e)}")
 
 # Mount static files
-static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
-os.makedirs(static_dir, exist_ok=True)
-app.mount("/static", StaticFiles(directory=static_dir), name="static")
+base_dir = os.path.dirname(os.path.abspath(__file__))
+static_dir = os.path.join(base_dir, "static")
+public_dir = os.path.join(base_dir, "public")
+
+if os.path.exists(public_dir):
+    app.mount("/static", StaticFiles(directory=os.path.join(public_dir, "static") if os.path.exists(os.path.join(public_dir, "static")) else static_dir), name="static")
+elif os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get("/")
 def serve_index():
-    index_path = os.path.join(static_dir, "index.html")
+    index_path = os.path.join(public_dir, "index.html")
+    if not os.path.exists(index_path):
+        index_path = os.path.join(static_dir, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    return JSONResponse({"message": "Server is running. index.html not found in static folder."})
+    return JSONResponse({"message": "Server is running. index.html not found."})
 
 if __name__ == "__main__":
     import uvicorn
