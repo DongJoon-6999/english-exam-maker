@@ -128,13 +128,11 @@ def generate_with_gemini(api_key: str, passage: str, target_grammar: str = "", t
         }
     }
 
-    # If the primary model hits 429 rate limit, automatically fallback to alternative flash models
-    candidate_models = [model_name, "gemini-2.0-flash", "gemini-1.5-flash"]
-    candidate_models = list(dict.fromkeys(candidate_models)) # deduplicate
-    last_error = ""
-
-    for m_name in candidate_models:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{m_name}:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={api_key}"
+    
+    # Retry up to 2 times if rate-limited
+    import time
+    for attempt in range(2):
         try:
             response = requests.post(url, json=payload, timeout=90)
             if response.status_code == 200:
@@ -142,8 +140,11 @@ def generate_with_gemini(api_key: str, passage: str, target_grammar: str = "", t
                 raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
                 return clean_and_parse_json(raw_text)
             elif response.status_code == 429:
-                last_error = f"429 Quota Exceeded on {m_name}"
-                continue # Try next fallback model
+                if attempt == 0:
+                    time.sleep(3) # Wait 3 seconds and retry once
+                    continue
+                else:
+                    raise RuntimeError("Google Gemini 무료 API의 1분당 호출 한도(20회/분)에 일시적으로 도달했습니다. 구글 정책상 약 30~50초 후 자동으로 리셋되므로, 잠시만 기다리신 후 다시 [서술형 문제 생성하기]를 눌러주세요.")
             else:
                 error_msg = response.text
                 try:
@@ -156,12 +157,9 @@ def generate_with_gemini(api_key: str, passage: str, target_grammar: str = "", t
         except requests.exceptions.Timeout:
             raise RuntimeError("Gemini API 서버 응답 시간 초과 (Timeout). 잠시 후 다시 시도해 주세요.")
         except Exception as e:
-            if "Gemini API Error" in str(e):
+            if "Google Gemini 무료 API" in str(e) or "Gemini API Error" in str(e):
                 raise
-            last_error = str(e)
-
-    # If all models hit rate limit
-    raise RuntimeError("Google Gemini 무료 API의 1분당 호출 한도(Rate Limit, 20회/분)에 일시적으로 도달했습니다. 구글 정책상 약 30~50초 후 자동으로 리셋되므로, 잠시만 기다리신 후 다시 [서술형 문제 생성하기]를 눌러주세요.")
+            raise RuntimeError(f"문제 생성 실패: {str(e)}")
 
 def generate_with_openai(api_key: str, passage: str, target_grammar: str = "", target_vocab: str = "", model_name: str = "gpt-4o-mini", candidate_count: int = 3, difficulty: str = "basic") -> Dict[str, Any]:
     url = "https://api.openai.com/v1/chat/completions"
