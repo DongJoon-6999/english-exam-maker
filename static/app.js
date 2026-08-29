@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     claudeModel: localStorage.getItem('esp_claude_model') || 'claude-3-7-sonnet-20250219',
     openaiModel: localStorage.getItem('esp_openai_model') || 'gpt-4o-mini',
     candidateCount: 3,
+    serverKeys: { gemini: false, claude: false, openai: false },
     samples: [],
     candidates: [],
     activeCandidateIndex: 0
@@ -82,19 +83,48 @@ document.addEventListener('DOMContentLoaded', () => {
   const toast = document.getElementById('toast');
   const toastMessage = document.getElementById('toast-message');
 
-  // 1. Initialize UI with stored settings
+  // 1. Initialize UI with stored settings and server status
   function updateProviderBadge() {
     if (state.provider === 'gemini') {
-      currentProviderBadge.textContent = state.geminiKey ? 'Gemini AI' : 'Gemini (키 미설정)';
+      if (state.geminiKey) {
+        currentProviderBadge.innerHTML = '<span class="text-indigo-600 font-bold">Gemini AI (개인키)</span>';
+      } else if (state.serverKeys.gemini) {
+        currentProviderBadge.innerHTML = '<span class="text-emerald-700 font-bold">Gemini AI (연동됨 ✓)</span>';
+      } else {
+        currentProviderBadge.textContent = 'Gemini (키 미설정)';
+      }
     } else if (state.provider === 'claude') {
-      currentProviderBadge.textContent = state.claudeKey ? 'Claude AI' : 'Claude (키 미설정)';
+      if (state.claudeKey) {
+        currentProviderBadge.innerHTML = '<span class="text-indigo-600 font-bold">Claude AI (개인키)</span>';
+      } else if (state.serverKeys.claude) {
+        currentProviderBadge.innerHTML = '<span class="text-emerald-700 font-bold">Claude AI (연동됨 ✓)</span>';
+      } else {
+        currentProviderBadge.textContent = 'Claude (키 미설정)';
+      }
     } else if (state.provider === 'openai') {
-      currentProviderBadge.textContent = state.openaiKey ? 'OpenAI' : 'OpenAI (키 미설정)';
+      if (state.openaiKey) {
+        currentProviderBadge.innerHTML = '<span class="text-indigo-600 font-bold">OpenAI (개인키)</span>';
+      } else if (state.serverKeys.openai) {
+        currentProviderBadge.innerHTML = '<span class="text-emerald-700 font-bold">OpenAI (연동됨 ✓)</span>';
+      } else {
+        currentProviderBadge.textContent = 'OpenAI (키 미설정)';
+      }
     } else {
       currentProviderBadge.textContent = '모의(Mock) 모드';
     }
   }
   updateProviderBadge();
+
+  // Check server environment key status
+  fetch('/api/config-status')
+    .then(res => res.json())
+    .then(data => {
+      if (data && data.server_keys) {
+        state.serverKeys = data.server_keys;
+        updateProviderBadge();
+      }
+    })
+    .catch(err => console.error('Failed to check server config status:', err));
 
   // Load sample passages from server
   fetch('/api/sample-passages')
@@ -522,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
       apiKeyHelpLink.href = 'https://aistudio.google.com/app/apikey';
       apiKeyHelpLink.style.display = 'flex';
       apiKeyInput.value = state.geminiKey || '';
-      apiKeyInput.placeholder = 'AIzaSy...';
+      apiKeyInput.placeholder = state.serverKeys.gemini ? '(서버 키 연동 완료 - 비워두셔도 자동 작동합니다)' : 'AIzaSy...';
     } else if (prov === 'claude') {
       modelSelectGroup.style.display = 'block';
       apiKeyGroup.style.display = 'block';
@@ -536,7 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
       apiKeyHelpLink.href = 'https://console.anthropic.com/settings/keys';
       apiKeyHelpLink.style.display = 'flex';
       apiKeyInput.value = state.claudeKey || '';
-      apiKeyInput.placeholder = 'sk-ant-api...';
+      apiKeyInput.placeholder = state.serverKeys.claude ? '(서버 키 연동 완료 - 비워두셔도 자동 작동합니다)' : 'sk-ant-api...';
     } else if (prov === 'openai') {
       modelSelectGroup.style.display = 'block';
       apiKeyGroup.style.display = 'block';
@@ -549,7 +579,7 @@ document.addEventListener('DOMContentLoaded', () => {
       apiKeyHelpLink.href = 'https://platform.openai.com/api-keys';
       apiKeyHelpLink.style.display = 'flex';
       apiKeyInput.value = state.openaiKey || '';
-      apiKeyInput.placeholder = 'sk-...';
+      apiKeyInput.placeholder = state.serverKeys.openai ? '(서버 키 연동 완료 - 비워두셔도 자동 작동합니다)' : 'sk-...';
     } else {
       // Mock mode
       modelSelectGroup.style.display = 'none';

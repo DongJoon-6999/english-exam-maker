@@ -67,6 +67,19 @@ DEFAULT_GEMINI_KEY = os.getenv("GEMINI_API_KEY", "")
 def get_sample_passages():
     return {"samples": SAMPLE_PASSAGES}
 
+@app.get("/api/config-status")
+def get_config_status():
+    gemini_key = os.getenv("GEMINI_API_KEY", "") or DEFAULT_GEMINI_KEY
+    claude_key = os.getenv("ANTHROPIC_API_KEY", "")
+    openai_key = os.getenv("OPENAI_API_KEY", "")
+    return {
+        "server_keys": {
+            "gemini": bool(gemini_key),
+            "claude": bool(claude_key),
+            "openai": bool(openai_key)
+        }
+    }
+
 @app.post("/api/test-key")
 def test_key(req: TestKeyRequest):
     provider = req.provider.lower()
