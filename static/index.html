@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>모의고사 서술형 요약 문제 생성기</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Pretendard Font -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+          <i data-lucide="sparkles" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 leading-tight">영어 서술형 요약 문제 생성기</h1>
+          <p class="text-xs text-slate-500">모의고사/교과서 지문 기반 조건부 영작·요약문 완성 문항 자동 제작</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <button id="btn-open-settings" class="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+          <span>AI 설정 (<span id="current-provider-badge">Gemini</span>)</span>
+        </button>
+        <button id="btn-print-view" class="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors">
+          <i data-lucide="printer" class="w-4 h-4"></i>
+          <span>시험지 인쇄</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Left Column: Input Panel (lg:col-span-5) -->
+    <section class="lg:col-span-5 flex flex-col space-y-4">
+      <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+        
+        <!-- Preset Selector & Title -->
+        <div class="flex items-center justify-between">
+          <label class="text-sm font-bold text-slate-800 flex items-center space-x-1.5">
+            <i data-lucide="file-text" class="w-4 h-4 text-indigo-600"></i>
+            <span>영어 지문 입력</span>
+          </label>
+          <div class="flex items-center space-x-2">
+            <span class="text-xs text-slate-500">예시 불러오기:</span>
+            <select id="preset-selector" class="text-xs bg-slate-100 border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium text-slate-700">
+              <option value="">-- 예시 지문 선택 --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Passage Textarea -->
+        <div class="relative">
+          <textarea id="passage-input" rows="9" placeholder="모의고사 또는 교과서 영어 지문을 여기에 복사해서 붙여넣으세요...&#10;&#10;예: Mining and other industries are causing soil pollution..." class="w-full text-sm p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono leading-relaxed resize-none"></textarea>
+          <div class="absolute bottom-2.5 right-3 text-[11px] text-slate-400">
+            <span id="passage-char-count">0</span>자
+          </div>
+        </div>
+
+        <!-- Optional Grammar Focus -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-700 flex items-center justify-between">
+            <span class="flex items-center space-x-1">
+              <i data-lucide="code-2" class="w-3.5 h-3.5 text-indigo-500"></i>
+              <span>핵심 문법 지정 (선택)</span>
+            </span>
+            <span class="text-[11px] font-normal text-slate-400">미입력 시 AI 자동 추출</span>
+          </label>
+          <input type="text" id="target-grammar-input" placeholder="예: 주격 관계대명사 that, while 분사구문, 5형식 allow" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          
+          <!-- Quick Grammar Pills -->
+          <div class="flex flex-wrap gap-1.5 pt-1">
+            <button type="button" class="grammar-pill text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 px-2 py-0.5 rounded-md transition">+ 관계대명사</button>
+            <button type="button" class="grammar-pill text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 px-2 py-0.5 rounded-md transition">+ 분사구문</button>
+            <button type="button" class="grammar-pill text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 px-2 py-0.5 rounded-md transition">+ 가주어-진주어</button>
+            <button type="button" class="grammar-pill text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 px-2 py-0.5 rounded-md transition">+ 5형식(allow/enable)</button>
+            <button type="button" class="grammar-pill text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 px-2 py-0.5 rounded-md transition">+ Not only A but also B</button>
+          </div>
+        </div>
+
+        <!-- Optional Vocab Focus -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-700 flex items-center justify-between">
+            <span class="flex items-center space-x-1">
+              <i data-lucide="spell-check" class="w-3.5 h-3.5 text-indigo-500"></i>
+              <span>중요 어휘 지정 (선택)</span>
+            </span>
+            <span class="text-[11px] font-normal text-slate-400">미입력 시 AI 주제어 자동 선정</span>
+          </label>
+          <input type="text" id="target-vocab-input" placeholder="예: deceptive, restore, extract, eco-friendly" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+        </div>
+
+        <!-- Candidate Count and Generate Action -->
+        <div class="pt-2 flex items-center space-x-3">
+          <div class="flex items-center space-x-1 bg-slate-100 p-1 rounded-lg">
+            <span class="text-[11px] font-medium text-slate-600 px-1.5">생성 수:</span>
+            <button id="count-2" class="count-btn px-2 py-1 text-xs rounded font-medium text-slate-600 hover:text-slate-900" data-count="2">2개</button>
+            <button id="count-3" class="count-btn active px-2 py-1 text-xs rounded font-semibold bg-white text-indigo-600 shadow-sm" data-count="3">3개</button>
+          </div>
+
+          <button id="btn-generate" class="flex-1 inline-flex items-center justify-center space-x-2 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-xl text-sm shadow-md shadow-indigo-200 transition-all">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>서술형 문제 생성하기</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Quick Guide Card -->
+      <div class="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 text-xs text-indigo-900 space-y-2">
+        <div class="font-bold flex items-center space-x-1.5 text-indigo-700">
+          <i data-lucide="info" class="w-4 h-4"></i>
+          <span>출제 포맷 안내</span>
+        </div>
+        <p class="leading-relaxed text-indigo-800/80">
+          고등학교 모의고사 및 내신 서술형 킬러 문항과 동일하게 <strong>[요약문 빈칸 완성] + [단어 원형 나열] + [기능어 추가 및 어형 변형 조건]</strong>으로 구성된 완벽한 문제를 제작합니다.
+        </p>
+      </div>
+    </section>
+
+    <!-- Right Column: Result & Preview Panel (lg:col-span-7) -->
+    <section class="lg:col-span-7 flex flex-col space-y-4">
+      
+      <!-- Empty / Placeholder State -->
+      <div id="placeholder-view" class="h-full min-h-[480px] bg-white rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-8 text-center space-y-3">
+        <div class="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 mb-1">
+          <i data-lucide="file-question" class="w-7 h-7"></i>
+        </div>
+        <h3 class="text-base font-bold text-slate-800">지문을 입력하고 문제를 생성해 보세요</h3>
+        <p class="text-xs text-slate-500 max-w-sm leading-relaxed">
+          왼쪽에 영어 지문을 넣고 <strong>[서술형 문제 생성하기]</strong>를 누르면 실제 시험지와 동일한 양식의 문항이 생성됩니다.
+        </p>
+        <button id="btn-try-sample" class="mt-2 inline-flex items-center space-x-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3.5 py-2 rounded-lg transition">
+          <i data-lucide="play-circle" class="w-4 h-4"></i>
+          <span>예시 지문으로 바로 테스트해보기</span>
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loading-view" class="hidden h-full min-h-[480px] bg-white rounded-2xl border border-slate-200 flex flex-col items-center justify-center p-8 text-center space-y-4">
+        <div class="animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
+        <div class="space-y-1">
+          <h3 class="text-sm font-bold text-slate-800">AI가 지문을 심층 분석 중입니다...</h3>
+          <p class="text-xs text-slate-500">핵심 주제 요약문 생성, 빈칸 설계, 보기 단어 원형 추출 및 조건부 배열 구성 중</p>
+        </div>
+      </div>
+
+      <!-- Problem Result Container -->
+      <div id="result-view" class="hidden flex-col space-y-4">
+        
+        <!-- Candidate Tabs & Toolbar -->
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+          <!-- Tabs -->
+          <div id="candidate-tabs" class="flex items-center space-x-1.5">
+            <!-- Dynamic Candidate Tab Buttons -->
+          </div>
+
+          <!-- Copy Actions -->
+          <div class="flex items-center space-x-1.5">
+            <button id="btn-copy-hwp" title="한글(HWP) 표/서식 복사" class="inline-flex items-center space-x-1 px-2.5 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition">
+              <i data-lucide="clipboard" class="w-3.5 h-3.5"></i>
+              <span>한글(HWP) 복사</span>
+            </button>
+            <button id="btn-copy-student" title="학생용 문제만 복사" class="inline-flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span>문제만 복사</span>
+            </button>
+            <button id="btn-copy-full" title="정답/해설 포함 전체 복사" class="inline-flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+              <i data-lucide="file-check" class="w-3.5 h-3.5"></i>
+              <span>전체 복사</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Problem Exam Card (Matching Images 2 & 3) -->
+        <div class="bg-white rounded-2xl border border-slate-300 shadow-md p-6 space-y-5" id="printable-card">
+          
+          <!-- Metadata Tag Header -->
+          <div class="flex flex-wrap items-center justify-between pb-3 border-b border-slate-100 text-xs text-slate-500">
+            <div class="flex items-center space-x-2">
+              <span id="badge-grammar" class="px-2 py-0.5 font-medium bg-indigo-50 text-indigo-700 rounded-md">문법 포인트</span>
+              <span id="badge-theme" class="text-slate-600 font-medium">주제 요약</span>
+            </div>
+            <span class="text-[11px] text-slate-400">[고등 서술형 요약문 완성 문항]</span>
+          </div>
+
+          <!-- Problem Direction / Title -->
+          <div class="space-y-1">
+            <h2 id="card-direction" class="text-sm font-bold text-slate-900 leading-snug">
+              ■ 윗글의 내용을 한 문장으로 요약하고자 한다. &lt;보기&gt;에 주어진 단어를 활용하여 빈칸 (A)에 들어갈 말을 영어로 쓰시오. (단, &lt;조건&gt;에 맞게 쓸 것)
+            </h2>
+          </div>
+
+          <!-- Main Exam Box (Bordered Canvas) -->
+          <div class="border-2 border-slate-800 rounded-lg p-5 space-y-5 bg-white font-sans">
+            
+            <!-- Summary Sentence with Blank (A) -->
+            <div class="text-base text-slate-900 leading-relaxed font-serif tracking-tight" id="card-sentence-display">
+              <!-- Prefix + Blank + Suffix rendered here -->
+            </div>
+
+            <!-- <단어> Box -->
+            <div class="space-y-1.5 pt-2 border-t border-slate-200">
+              <div class="text-xs font-bold text-slate-800 flex items-center space-x-1">
+                <span>&lt;단어&gt;</span>
+              </div>
+              <div id="card-given-words" class="text-sm font-mono p-2.5 bg-slate-50 rounded border border-slate-200 text-slate-800 leading-relaxed tracking-wide">
+                <!-- given words -->
+              </div>
+            </div>
+
+            <!-- <조건> Box -->
+            <div class="space-y-1 pt-1">
+              <div class="text-xs font-bold text-slate-800">
+                <span>&lt;조건&gt;</span>
+              </div>
+              <ol id="card-conditions" class="text-xs text-slate-700 space-y-1 pl-1 list-decimal list-inside">
+                <!-- conditions -->
+              </ol>
+            </div>
+
+          </div>
+
+          <!-- Interactive Student Solve Sandbox -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-700 flex items-center space-x-1">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5 text-indigo-500"></i>
+                <span>학생 실습 영작 테스트 (직접 풀어보기)</span>
+              </span>
+              <button id="btn-check-student-answer" class="text-xs px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md transition">
+                채점하기
+              </button>
+            </div>
+            <input type="text" id="student-answer-input" placeholder="(A)에 들어갈 완성된 영어 문구를 입력해보세요..." class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
+            <div id="student-eval-result" class="hidden text-xs p-2.5 rounded-lg"></div>
+          </div>
+
+          <!-- Teacher's Guide & Answer Explanation (Collapsible) -->
+          <div class="border border-emerald-200 bg-emerald-50/40 rounded-xl overflow-hidden">
+            <button id="btn-toggle-answer" class="w-full px-4 py-3 flex items-center justify-between text-left font-bold text-xs text-emerald-900 bg-emerald-100/60 hover:bg-emerald-100 transition">
+              <span class="flex items-center space-x-1.5">
+                <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+                <span>[정답 및 상세 해설 / 출제 의도]</span>
+              </span>
+              <i data-lucide="chevron-down" id="answer-chevron" class="w-4 h-4 transition-transform"></i>
+            </button>
+            
+            <div id="answer-content" class="p-4 space-y-4 text-xs text-slate-800">
+              
+              <!-- Blank Answer -->
+              <div class="space-y-1">
+                <span class="font-bold text-emerald-800">【빈칸 (A) 정답】:</span>
+                <p id="ans-blank" class="font-mono text-sm font-bold text-indigo-900 bg-white p-2.5 rounded border border-emerald-200 shadow-sm"></p>
+              </div>
+
+              <!-- Full Sentence -->
+              <div class="space-y-1">
+                <span class="font-bold text-emerald-800">【전체 완성 문장】:</span>
+                <p id="ans-full-sentence" class="font-serif text-slate-800 bg-white p-2.5 rounded border border-emerald-200"></p>
+              </div>
+
+              <!-- Korean Translation -->
+              <div class="space-y-1">
+                <span class="font-bold text-emerald-800">【요약문 해석】:</span>
+                <p id="ans-translation" class="text-slate-700 bg-white p-2.5 rounded border border-emerald-200 leading-relaxed"></p>
+              </div>
+
+              <!-- Grammar & Word Transformation Breakdown -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div class="bg-white p-3 rounded border border-emerald-200 space-y-1.5">
+                  <span class="font-bold text-slate-800 flex items-center space-x-1">
+                    <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-blue-600"></i>
+                    <span>추가된 기능어 (&lt;조건&gt; 1)</span>
+                  </span>
+                  <div id="ans-added-words" class="font-mono text-blue-700 font-semibold"></div>
+                </div>
+                <div class="bg-white p-3 rounded border border-emerald-200 space-y-1.5">
+                  <span class="font-bold text-slate-800 flex items-center space-x-1">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-amber-600"></i>
+                    <span>변형된 단어 (&lt;조건&gt; 2)</span>
+                  </span>
+                  <div id="ans-modified-words" class="space-y-1"></div>
+                </div>
+              </div>
+
+              <!-- Detailed Explanation -->
+              <div class="space-y-1 pt-1">
+                <span class="font-bold text-emerald-800">【문법 및 출제 포인트 해설】:</span>
+                <p id="ans-explanation" class="text-slate-700 bg-white p-3 rounded border border-emerald-200 leading-relaxed"></p>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 border border-slate-200 animate-in fade-in zoom-in duration-150">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+          <i data-lucide="cpu" class="w-5 h-5 text-indigo-600"></i>
+          <span>AI 엔진 및 API 설정</span>
+        </h3>
+        <button id="btn-close-settings" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        
+        <!-- Provider Selection -->
+        <div class="space-y-1.5">
+          <label class="font-semibold text-slate-700">AI 제공자 선택</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" class="provider-btn active border-2 border-indigo-600 bg-indigo-50 text-indigo-700 py-2 rounded-lg font-bold" data-provider="gemini">Google Gemini</button>
+            <button type="button" class="provider-btn border border-slate-200 bg-slate-50 text-slate-700 py-2 rounded-lg font-medium" data-provider="openai">OpenAI (GPT)</button>
+            <button type="button" class="provider-btn border border-slate-200 bg-slate-50 text-slate-700 py-2 rounded-lg font-medium" data-provider="mock">모의(Mock) 모드</button>
+          </div>
+        </div>
+
+        <!-- Model Selection -->
+        <div class="space-y-1.5" id="model-select-group">
+          <label class="font-semibold text-slate-700">모델 선택</label>
+          <select id="model-select" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg font-medium">
+            <option value="gemini-2.5-flash">Gemini 2.5 Flash (권장, 초고속 & 최고 품질)</option>
+            <option value="gemini-1.5-flash">Gemini 1.5 Flash (빠른 속도)</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro (고심도 추론)</option>
+          </select>
+        </div>
+
+        <!-- API Key Input -->
+        <div class="space-y-1.5" id="api-key-group">
+          <div class="flex items-center justify-between">
+            <label class="font-semibold text-slate-700" id="api-key-label">Gemini API Key</label>
+            <a id="api-key-help-link" href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-600 hover:underline flex items-center space-x-0.5">
+              <span>무료 키 발급받기</span>
+              <i data-lucide="external-link" class="w-3 h-3"></i>
+            </a>
+          </div>
+          <input type="password" id="api-key-input" placeholder="AIzaSy..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono">
+          <p class="text-[11px] text-slate-400">입력한 API Key는 본인 브라우저(localStorage)에만 안전하게 저장됩니다.</p>
+        </div>
+
+        <!-- Test Connection Button & Status -->
+        <div class="pt-1 flex items-center justify-between">
+          <button id="btn-test-key" type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition">
+            연결 테스트
+          </button>
+          <span id="test-key-status" class="font-medium"></span>
+        </div>
+
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex justify-end space-x-2">
+        <button id="btn-save-settings" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs shadow transition">
+          설정 저장
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-10 opacity-0 pointer-events-none transition-all duration-300 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg flex items-center space-x-2 text-xs font-medium">
+    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toast-message">클립보드에 복사되었습니다!</span>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/static/app.js"></script>
+</body>
+</html>

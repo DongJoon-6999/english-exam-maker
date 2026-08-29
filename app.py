@@ -1,0 +1,171 @@
+import os
+import requests
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel, Field
+from typing import Optional, List, Dict, Any
+
+from llm_service import generate_with_gemini, generate_with_openai, generate_mock_candidates
+
+app = FastAPI(title="English Summary Problem Generator", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class GenerateRequest(BaseModel):
+    passage: str = Field(..., description="English reading passage")
+    target_grammar: Optional[str] = Field("", description="Target grammar structure")
+    target_vocab: Optional[str] = Field("", description="Target vocabulary")
+    provider: str = Field("gemini", description="AI provider: gemini | openai | mock")
+    api_key: Optional[str] = Field("", description="User API Key")
+    model_name: Optional[str] = Field("gemini-2.5-flash", description="Model identifier")
+    candidate_count: Optional[int] = Field(3, description="Number of problem candidates")
+
+class TestKeyRequest(BaseModel):
+    provider: str
+    api_key: str
+    model_name: Optional[str] = "gemini-2.5-flash"
+
+SAMPLE_PASSAGES = [
+    {
+        "id": "purifying-soil",
+        "title": "[능률(김) 4과] Purifying Polluted Soil (토양 정화와 버드나무)",
+        "grammar_hint": "관계대명사 that, 분사구문, 5형식 enable",
+        "vocab_hint": "eco-friendly, restore, extract, absorb, promising",
+        "passage": """Mining and other industries are causing soil pollution across the globe. Although polluted soil can be dug up and transported to a landfill, this process is expensive. Moreover, it only moves the problem to another area and does not really solve it.
+Fortunately, there is an eco-friendly and cost-effective way to restore polluted soil - planting willow trees. These amazing trees have extensive and well-developed root systems. As a result, they naturally extract a wide range of harmful materials from the soil. They can also grow quickly, even in soil with a high acidity level or a lot of heavy metals in it.
+Research on the effectiveness of using willow trees for this purpose is in development. Scientists have found that some species of willow trees are able to absorb harmful materials better than others. Therefore, this promising area should be further explored to find out which trees are the most effective. In time, we may be able to clean up our land with willow trees."""
+    },
+    {
+        "id": "greenwashing",
+        "title": "[고3 모의고사] Greenwashing and Deceptive Marketing",
+        "grammar_hint": "주격 관계대명사 that, 5형식 allow + to-V, while 분사구문",
+        "vocab_hint": "deceptive, allow, present, false, mislead",
+        "passage": """Greenwashing is the practice of making an unsubstantiated or misleading claim about the environmental benefits of a product, service, technology or company practice. In other words, greenwashing is making a company appear to be more environmentally friendly than it actually is.
+Greenwashing can range from simple exaggeration to outright deception. Companies engage in greenwashing to capitalize on the growing demand for environmentally sound products. They use vague terms, suggestive imagery, or unverified eco-labels to give consumers a false sense of environmental responsibility. While such marketing strategies may boost short-term sales, they ultimately undermine consumer trust and divert attention away from genuine eco-friendly practices that truly benefit our planet."""
+    },
+    {
+        "id": "habit-loop",
+        "title": "[고2 학평] The Habit Loop and Cue-Routine-Reward",
+        "grammar_hint": "가주어-진주어 구문, not only A but also B, 분사구문",
+        "vocab_hint": "automatic, identify, replace, trigger, conscious",
+        "passage": """Habits are formed through a neurological loop consisting of three parts: a cue, a routine, and a reward. The cue is a trigger that tells your brain to go into automatic mode and which habit to use. Then there is the routine, which can be physical, mental, or emotional. Finally, there is a reward, which helps your brain figure out if this particular loop is worth remembering for the future.
+Over time, this loop becomes more and more automatic until the cue and reward become intertwined with a powerful sense of craving. Therefore, to change an unwanted habit, it is crucial not to eliminate the cue entirely, but to consciously replace the old routine with a healthier alternative while maintaining the same reward."""
+    }
+]
+
+@app.get("/api/sample-passages")
+def get_sample_passages():
+    return {"samples": SAMPLE_PASSAGES}
+
+@app.post("/api/test-key")
+def test_key(req: TestKeyRequest):
+    if not req.api_key or req.api_key.strip() == "":
+        raise HTTPException(status_code=400, detail="API Key가 입력되지 않았습니다.")
+
+    provider = req.provider.lower()
+    try:
+        if provider == "gemini":
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{req.model_name or 'gemini-2.5-flash'}:generateContent?key={req.api_key}"
+            resp = requests.post(
+                url,
+                json={"contents": [{"role": "user", "parts": [{"text": "Hello, answer 'OK'"}]}]},
+                timeout=10
+            )
+            if resp.status_code == 200:
+                return {"success": True, "message": "Gemini API 연결에 성공했습니다!"}
+            else:
+                err_msg = resp.text
+                try:
+                    err_msg = resp.json().get("error", {}).get("message", resp.text)
+                except Exception:
+                    pass
+                raise HTTPException(status_code=400, detail=f"Gemini API 인증 실패: {err_msg}")
+
+        elif provider == "openai":
+            url = "https://api.openai.com/v1/models"
+            headers = {"Authorization": f"Bearer {req.api_key}"}
+            resp = requests.get(url, headers=headers, timeout=10)
+            if resp.status_code == 200:
+                return {"success": True, "message": "OpenAI API 연결에 성공했습니다!"}
+            else:
+                err_msg = resp.text
+                try:
+                    err_msg = resp.json().get("error", {}).get("message", resp.text)
+                except Exception:
+                    pass
+                raise HTTPException(status_code=400, detail=f"OpenAI API 인증 실패: {err_msg}")
+        else:
+            return {"success": True, "message": "모의(Mock) 모드는 API 키가 필요하지 않습니다."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/generate")
+def generate_problems(req: GenerateRequest):
+    if not req.passage or len(req.passage.strip()) < 20:
+        raise HTTPException(status_code=400, detail="영어 지문을 최소 20자 이상 입력해 주세요.")
+
+    provider = req.provider.lower()
+    api_key = (req.api_key or "").strip()
+
+    # If no API key provided or provider is mock, fallback to smart mock generator
+    if not api_key or provider == "mock":
+        try:
+            result = generate_mock_candidates(req.passage, req.target_grammar, req.target_vocab)
+            return {"success": True, "provider": "mock", "data": result}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Mock 생성 오류: {str(e)}")
+
+    try:
+        if provider == "gemini":
+            model = req.model_name or "gemini-2.5-flash"
+            result = generate_with_gemini(
+                api_key=api_key,
+                passage=req.passage,
+                target_grammar=req.target_grammar or "",
+                target_vocab=req.target_vocab or "",
+                model_name=model,
+                candidate_count=req.candidate_count or 3
+            )
+            return {"success": True, "provider": "gemini", "data": result}
+
+        elif provider == "openai":
+            model = req.model_name or "gpt-4o-mini"
+            result = generate_with_openai(
+                api_key=api_key,
+                passage=req.passage,
+                target_grammar=req.target_grammar or "",
+                target_vocab=req.target_vocab or "",
+                model_name=model,
+                candidate_count=req.candidate_count or 3
+            )
+            return {"success": True, "provider": "openai", "data": result}
+        else:
+            result = generate_mock_candidates(req.passage, req.target_grammar, req.target_vocab)
+            return {"success": True, "provider": "mock", "data": result}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"문제 생성 실패: {str(e)}")
+
+# Mount static files
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+os.makedirs(static_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+@app.get("/")
+def serve_index():
+    index_path = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return JSONResponse({"message": "Server is running. index.html not found in static folder."})
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
