@@ -157,6 +157,43 @@ def generate_with_openai(api_key: str, passage: str, target_grammar: str = "", t
     except Exception as e:
         raise ValueError(f"Failed to parse OpenAI response: {e}\nRaw: {data}")
 
+def generate_with_claude(api_key: str, passage: str, target_grammar: str = "", target_vocab: str = "", model_name: str = "claude-3-7-sonnet-20250219", candidate_count: int = 3) -> Dict[str, Any]:
+    url = "https://api.anthropic.com/v1/messages"
+    prompt_text = get_gemini_prompt(passage, target_grammar, target_vocab, candidate_count)
+
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json"
+    }
+
+    payload = {
+        "model": model_name,
+        "max_tokens": 4096,
+        "system": SYSTEM_PROMPT + "\nOutput strictly valid JSON with no conversational prefix or suffix.",
+        "messages": [
+            {"role": "user", "content": prompt_text}
+        ]
+    }
+
+    response = requests.post(url, headers=headers, json=payload, timeout=60)
+    if response.status_code != 200:
+        error_msg = response.text
+        try:
+            err_json = response.json()
+            if "error" in err_json and "message" in err_json["error"]:
+                error_msg = err_json["error"]["message"]
+        except Exception:
+            pass
+        raise RuntimeError(f"Claude API Error ({response.status_code}): {error_msg}")
+
+    data = response.json()
+    try:
+        raw_text = data["content"][0]["text"]
+        return clean_and_parse_json(raw_text)
+    except Exception as e:
+        raise ValueError(f"Failed to parse Claude response: {e}\nRaw: {data}")
+
 def clean_and_parse_json(text: str) -> Dict[str, Any]:
     text = text.strip()
     if text.startswith("```json"):

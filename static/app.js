@@ -10,8 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let state = {
     provider: localStorage.getItem('esp_provider') || 'gemini',
     geminiKey: localStorage.getItem('esp_gemini_key') || '',
+    claudeKey: localStorage.getItem('esp_claude_key') || '',
     openaiKey: localStorage.getItem('esp_openai_key') || '',
     geminiModel: localStorage.getItem('esp_gemini_model') || 'gemini-2.5-flash',
+    claudeModel: localStorage.getItem('esp_claude_model') || 'claude-3-7-sonnet-20250219',
     openaiModel: localStorage.getItem('esp_openai_model') || 'gpt-4o-mini',
     candidateCount: 3,
     samples: [],
@@ -84,6 +86,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateProviderBadge() {
     if (state.provider === 'gemini') {
       currentProviderBadge.textContent = state.geminiKey ? 'Gemini AI' : 'Gemini (키 미설정)';
+    } else if (state.provider === 'claude') {
+      currentProviderBadge.textContent = state.claudeKey ? 'Claude AI' : 'Claude (키 미설정)';
     } else if (state.provider === 'openai') {
       currentProviderBadge.textContent = state.openaiKey ? 'OpenAI' : 'OpenAI (키 미설정)';
     } else {
@@ -179,6 +183,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.provider === 'gemini') {
       key = state.geminiKey;
       model = state.geminiModel;
+    } else if (state.provider === 'claude') {
+      key = state.claudeKey;
+      model = state.claudeModel;
     } else if (state.provider === 'openai') {
       key = state.openaiKey;
       model = state.openaiModel;
@@ -515,6 +522,20 @@ document.addEventListener('DOMContentLoaded', () => {
       apiKeyHelpLink.style.display = 'flex';
       apiKeyInput.value = state.geminiKey || '';
       apiKeyInput.placeholder = 'AIzaSy...';
+    } else if (prov === 'claude') {
+      modelSelectGroup.style.display = 'block';
+      apiKeyGroup.style.display = 'block';
+      modelSelect.innerHTML = `
+        <option value="claude-3-7-sonnet-20250219">Claude 3.7 Sonnet (권장, 최신 플래그십 모델)</option>
+        <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (고품질 문제 생성)</option>
+        <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku (초고속 & 경제적)</option>
+      `;
+      modelSelect.value = state.claudeModel || 'claude-3-7-sonnet-20250219';
+      apiKeyLabel.textContent = 'Claude (Anthropic) API Key';
+      apiKeyHelpLink.href = 'https://console.anthropic.com/settings/keys';
+      apiKeyHelpLink.style.display = 'flex';
+      apiKeyInput.value = state.claudeKey || '';
+      apiKeyInput.placeholder = 'sk-ant-api...';
     } else if (prov === 'openai') {
       modelSelectGroup.style.display = 'block';
       apiKeyGroup.style.display = 'block';
@@ -589,6 +610,11 @@ document.addEventListener('DOMContentLoaded', () => {
       state.geminiModel = modelSelect.value;
       localStorage.setItem('esp_gemini_key', state.geminiKey);
       localStorage.setItem('esp_gemini_model', state.geminiModel);
+    } else if (prov === 'claude') {
+      state.claudeKey = apiKeyInput.value.trim();
+      state.claudeModel = modelSelect.value;
+      localStorage.setItem('esp_claude_key', state.claudeKey);
+      localStorage.setItem('esp_claude_model', state.claudeModel);
     } else if (prov === 'openai') {
       state.openaiKey = apiKeyInput.value.trim();
       state.openaiModel = modelSelect.value;

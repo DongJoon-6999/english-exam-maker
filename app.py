@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 
-from llm_service import generate_with_gemini, generate_with_openai, generate_mock_candidates
+from llm_service import generate_with_gemini, generate_with_openai, generate_with_claude, generate_mock_candidates
 
 app = FastAPI(title="English Summary Problem Generator", version="1.0.0")
 
@@ -67,10 +67,12 @@ def get_sample_passages():
 
 @app.post("/api/test-key")
 def test_key(req: TestKeyRequest):
+    provider = req.provider.lower()
+    if provider == "mock":
+        return {"success": True, "message": "모의(Mock) 모드는 API 키가 필요하지 않습니다."}
+
     if not req.api_key or req.api_key.strip() == "":
         raise HTTPException(status_code=400, detail="API Key가 입력되지 않았습니다.")
-
-    provider = req.provider.lower()
     try:
         if provider == "gemini":
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{req.model_name or 'gemini-2.5-flash'}:generateContent?key={req.api_key}"
@@ -88,6 +90,33 @@ def test_key(req: TestKeyRequest):
                 except Exception:
                     pass
                 raise HTTPException(status_code=400, detail=f"Gemini API 인증 실패: {err_msg}")
+
+        elif provider == "claude":
+            url = "https://api.anthropic.com/v1/messages"
+            headers = {
+                "x-api-key": req.api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json"
+            }
+            resp = requests.post(
+                url,
+                headers=headers,
+                json={
+                    "model": req.model_name or "claude-3-5-haiku-20241022",
+                    "max_tokens": 1,
+                    "messages": [{"role": "user", "content": "Hi"}]
+                },
+                timeout=10
+            )
+            if resp.status_code == 200:
+                return {"success": True, "message": "Claude (Anthropic) API 연결에 성공했습니다!"}
+            else:
+                err_msg = resp.text
+                try:
+                    err_msg = resp.json().get("error", {}).get("message", resp.text)
+                except Exception:
+                    pass
+                raise HTTPException(status_code=400, detail=f"Claude API 인증 실패: {err_msg}")
 
         elif provider == "openai":
             url = "https://api.openai.com/v1/models"
@@ -135,6 +164,18 @@ def generate_problems(req: GenerateRequest):
                 candidate_count=req.candidate_count or 3
             )
             return {"success": True, "provider": "gemini", "data": result}
+
+        elif provider == "claude":
+            model = req.model_name or "claude-3-7-sonnet-20250219"
+            result = generate_with_claude(
+                api_key=api_key,
+                passage=req.passage,
+                target_grammar=req.target_grammar or "",
+                target_vocab=req.target_vocab or "",
+                model_name=model,
+                candidate_count=req.candidate_count or 3
+            )
+            return {"success": True, "provider": "claude", "data": result}
 
         elif provider == "openai":
             model = req.model_name or "gpt-4o-mini"
