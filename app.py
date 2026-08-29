@@ -266,7 +266,8 @@ def serve_index():
 
 @app.api_route("/{full_path:path}", methods=["GET", "POST", "OPTIONS"])
 async def universal_route_handler(request: Request, full_path: str):
-    clean_path = (full_path or request.url.path).lower().strip("/")
+    route_param = request.query_params.get("_route", "")
+    clean_path = f"{full_path} {route_param} {request.url.path}".lower()
     
     if "sample-passages" in clean_path:
         return get_sample_passages()
