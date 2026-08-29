@@ -2,7 +2,8 @@
   "version": 2,
   "functions": {
     "api/index.py": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": "static/**"
     }
   },
   "builds": [
@@ -12,6 +13,18 @@
     }
   ],
   "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/",
+      "dest": "/static/index.html"
+    },
     {
       "src": "/(.*)",
       "dest": "api/index.py"
