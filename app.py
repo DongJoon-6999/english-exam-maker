@@ -25,13 +25,13 @@ class GenerateRequest(BaseModel):
     target_vocab: Optional[str] = Field("", description="Target vocabulary")
     provider: str = Field("gemini", description="AI provider: gemini | openai | mock")
     api_key: Optional[str] = Field("", description="User API Key")
-    model_name: Optional[str] = Field("gemini-2.5-flash", description="Model identifier")
+    model_name: Optional[str] = Field("gemini-3.6-flash", description="Model identifier")
     candidate_count: Optional[int] = Field(3, description="Number of problem candidates")
 
 class TestKeyRequest(BaseModel):
     provider: str
     api_key: str
-    model_name: Optional[str] = "gemini-2.5-flash"
+    model_name: Optional[str] = "gemini-3.6-flash"
 
 SAMPLE_PASSAGES = [
     {
@@ -75,7 +75,7 @@ def test_key(req: TestKeyRequest):
         raise HTTPException(status_code=400, detail="API Key가 입력되지 않았습니다.")
     try:
         if provider == "gemini":
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{req.model_name or 'gemini-2.5-flash'}:generateContent?key={req.api_key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{req.model_name or 'gemini-3.6-flash'}:generateContent?key={req.api_key}"
             resp = requests.post(
                 url,
                 json={"contents": [{"role": "user", "parts": [{"text": "Hello, answer 'OK'"}]}]},
@@ -154,7 +154,7 @@ def generate_problems(req: GenerateRequest):
 
     try:
         if provider == "gemini":
-            model = req.model_name or "gemini-2.5-flash"
+            model = req.model_name or "gemini-3.6-flash"
             result = generate_with_gemini(
                 api_key=api_key,
                 passage=req.passage,

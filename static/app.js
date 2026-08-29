@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     geminiKey: localStorage.getItem('esp_gemini_key') || '',
     claudeKey: localStorage.getItem('esp_claude_key') || '',
     openaiKey: localStorage.getItem('esp_openai_key') || '',
-    geminiModel: localStorage.getItem('esp_gemini_model') || 'gemini-2.5-flash',
+    geminiModel: localStorage.getItem('esp_gemini_model') || 'gemini-3.6-flash',
     claudeModel: localStorage.getItem('esp_claude_model') || 'claude-3-7-sonnet-20250219',
     openaiModel: localStorage.getItem('esp_openai_model') || 'gpt-4o-mini',
     candidateCount: 3,
@@ -512,11 +512,12 @@ document.addEventListener('DOMContentLoaded', () => {
       modelSelectGroup.style.display = 'block';
       apiKeyGroup.style.display = 'block';
       modelSelect.innerHTML = `
-        <option value="gemini-2.5-flash">Gemini 2.5 Flash (권장, 초고속 & 최고 품질)</option>
-        <option value="gemini-1.5-flash">Gemini 1.5 Flash (빠른 속도)</option>
+        <option value="gemini-3.6-flash">Gemini 3.6 Flash (권장, 최신 플래그십)</option>
+        <option value="gemini-2.0-flash">Gemini 2.0 Flash (빠른 속도)</option>
+        <option value="gemini-1.5-flash">Gemini 1.5 Flash (표준)</option>
         <option value="gemini-1.5-pro">Gemini 1.5 Pro (고심도 추론)</option>
       `;
-      modelSelect.value = state.geminiModel || 'gemini-2.5-flash';
+      modelSelect.value = state.geminiModel || 'gemini-3.6-flash';
       apiKeyLabel.textContent = 'Gemini API Key';
       apiKeyHelpLink.href = 'https://aistudio.google.com/app/apikey';
       apiKeyHelpLink.style.display = 'flex';

@@ -83,7 +83,7 @@ Output your response strictly as a JSON object adhering to this schema:
 }}
 """
 
-def generate_with_gemini(api_key: str, passage: str, target_grammar: str = "", target_vocab: str = "", model_name: str = "gemini-2.5-flash", candidate_count: int = 3) -> Dict[str, Any]:
+def generate_with_gemini(api_key: str, passage: str, target_grammar: str = "", target_vocab: str = "", model_name: str = "gemini-3.6-flash", candidate_count: int = 3) -> Dict[str, Any]:
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
     prompt_text = get_gemini_prompt(passage, target_grammar, target_vocab, candidate_count)
 
