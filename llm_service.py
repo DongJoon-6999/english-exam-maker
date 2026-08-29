@@ -102,7 +102,7 @@ def generate_with_gemini(api_key: str, passage: str, target_grammar: str = "", t
         }
     }
 
-    response = requests.post(url, json=payload, timeout=60)
+    response = requests.post(url, json=payload, timeout=90)
     if response.status_code != 200:
         error_msg = response.text
         try:
@@ -139,7 +139,7 @@ def generate_with_openai(api_key: str, passage: str, target_grammar: str = "", t
         "response_format": {"type": "json_object"}
     }
 
-    response = requests.post(url, headers=headers, json=payload, timeout=60)
+    response = requests.post(url, headers=headers, json=payload, timeout=90)
     if response.status_code != 200:
         error_msg = response.text
         try:
@@ -176,7 +176,7 @@ def generate_with_claude(api_key: str, passage: str, target_grammar: str = "", t
         ]
     }
 
-    response = requests.post(url, headers=headers, json=payload, timeout=60)
+    response = requests.post(url, headers=headers, json=payload, timeout=90)
     if response.status_code != 200:
         error_msg = response.text
         try:

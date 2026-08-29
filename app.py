@@ -61,6 +61,8 @@ Over time, this loop becomes more and more automatic until the cue and reward be
     }
 ]
 
+DEFAULT_GEMINI_KEY = os.getenv("GEMINI_API_KEY", "")
+
 @app.get("/api/sample-passages")
 def get_sample_passages():
     return {"samples": SAMPLE_PASSAGES}
@@ -71,15 +73,27 @@ def test_key(req: TestKeyRequest):
     if provider == "mock":
         return {"success": True, "message": "모의(Mock) 모드는 API 키가 필요하지 않습니다."}
 
-    if not req.api_key or req.api_key.strip() == "":
+    api_key = (req.api_key or "").strip()
+    if not api_key:
+        if provider == "gemini":
+            api_key = DEFAULT_GEMINI_KEY
+        elif provider == "claude":
+            api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+        elif provider == "openai":
+            api_key = os.getenv("OPENAI_API_KEY", "").strip()
+
+    if not api_key:
         raise HTTPException(status_code=400, detail="API Key가 입력되지 않았습니다.")
     try:
         if provider == "gemini":
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{req.model_name or 'gemini-3.6-flash'}:generateContent?key={req.api_key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{req.model_name or 'gemini-3.6-flash'}:generateContent?key={api_key}"
             resp = requests.post(
                 url,
-                json={"contents": [{"role": "user", "parts": [{"text": "Hello, answer 'OK'"}]}]},
-                timeout=10
+                json={
+                    "contents": [{"role": "user", "parts": [{"text": "Hi"}]}],
+                    "generationConfig": {"maxOutputTokens": 5}
+                },
+                timeout=30
             )
             if resp.status_code == 200:
                 return {"success": True, "message": "Gemini API 연결에 성공했습니다!"}
@@ -94,7 +108,7 @@ def test_key(req: TestKeyRequest):
         elif provider == "claude":
             url = "https://api.anthropic.com/v1/messages"
             headers = {
-                "x-api-key": req.api_key,
+                "x-api-key": api_key,
                 "anthropic-version": "2023-06-01",
                 "content-type": "application/json"
             }
@@ -103,10 +117,10 @@ def test_key(req: TestKeyRequest):
                 headers=headers,
                 json={
                     "model": req.model_name or "claude-3-5-haiku-20241022",
-                    "max_tokens": 1,
+                    "max_tokens": 5,
                     "messages": [{"role": "user", "content": "Hi"}]
                 },
-                timeout=10
+                timeout=30
             )
             if resp.status_code == 200:
                 return {"success": True, "message": "Claude (Anthropic) API 연결에 성공했습니다!"}
@@ -120,8 +134,8 @@ def test_key(req: TestKeyRequest):
 
         elif provider == "openai":
             url = "https://api.openai.com/v1/models"
-            headers = {"Authorization": f"Bearer {req.api_key}"}
-            resp = requests.get(url, headers=headers, timeout=10)
+            headers = {"Authorization": f"Bearer {api_key}"}
+            resp = requests.get(url, headers=headers, timeout=30)
             if resp.status_code == 200:
                 return {"success": True, "message": "OpenAI API 연결에 성공했습니다!"}
             else:
@@ -133,6 +147,8 @@ def test_key(req: TestKeyRequest):
                 raise HTTPException(status_code=400, detail=f"OpenAI API 인증 실패: {err_msg}")
         else:
             return {"success": True, "message": "모의(Mock) 모드는 API 키가 필요하지 않습니다."}
+    except requests.exceptions.Timeout:
+        raise HTTPException(status_code=408, detail="API 서버 응답 시간 초과(Timeout): 네트워크 연결이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -144,16 +160,16 @@ def generate_problems(req: GenerateRequest):
     provider = req.provider.lower()
     api_key = (req.api_key or "").strip()
 
-    # Fallback to system environment variables if API key is not passed in request
+    # Fallback to system environment variables or default key if API key is not passed in request
     if not api_key:
         if provider == "gemini":
-            api_key = os.getenv("GEMINI_API_KEY", "").strip()
+            api_key = DEFAULT_GEMINI_KEY
         elif provider == "claude":
             api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
         elif provider == "openai":
             api_key = os.getenv("OPENAI_API_KEY", "").strip()
 
-    # If no API key provided or provider is mock, fallback to smart mock generator
+    # If still no API key provided or provider is mock, fallback to smart mock generator
     if not api_key or provider == "mock":
         try:
             result = generate_mock_candidates(req.passage, req.target_grammar, req.target_vocab, candidate_count=req.candidate_count or 3)
