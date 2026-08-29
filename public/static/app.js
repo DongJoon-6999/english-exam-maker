@@ -358,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (remainingOmitted.length > 0) {
       cand.current_conditions = [
-        `1. 어법상 기능어 반드시 추가할 것 (필요시 ${remainingOmitted.join(', ')} 등 추가)`,
+        `1. 어법상 기능어 반드시 추가할 것`,
         `2. 필요시 단어를 변형할 것 (수일치, 시제, 분사, 품사 변형 등)`
       ];
     } else {

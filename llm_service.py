@@ -33,7 +33,7 @@ Your task is to analyze an English reading passage (모의고사/교과서 지�
    - Shuffle all words in random order, separated by ' / '.
 
 3. **<조건> (Conditions)**:
-   - "1. 어법상 기능어 반드시 추가할 것 (필요시 to부정사, 전치사, 접속사, 관계사 등 추가)"
+   - "1. 어법상 기능어 반드시 추가할 것"
    - "2. 필요시 단어를 변형할 것 (수일치, 시제, 분사, 품사 변형 등)"
 
 4. **Detailed Functional Words Breakdown**:
@@ -252,7 +252,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
                 "full_sentence": "Planting willow trees provides an eco-friendly way to restore polluted soil while effectively extracting harmful substances through their well-developed root systems.",
                 "given_words": ["restore", "harmful", "way", "eco-friendly", "polluted", "extract", "substance", "soil", "while", "effective", "an"],
                 "conditions": [
-                    "1. 어법상 기능어 반드시 추가할 것 (필요시 to부정사/전치사 등)",
+                    "1. 어법상 기능어 반드시 추가할 것",
                     "2. 필요시 단어를 변형할 것 (어형 및 분사 변형)"
                 ],
                 "functional_words_detail": [
@@ -282,7 +282,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
                 "full_sentence": "Further exploration of willow species that absorb harmful materials better enables us to clean up our land more cost-effectively.",
                 "given_words": ["better", "clean", "absorb", "up", "our", "that", "enable", "harmful", "material", "we", "land"],
                 "conditions": [
-                    "1. 어법상 기능어 반드시 추가할 것 (필요시 to부정사/전치사 등)",
+                    "1. 어법상 기능어 반드시 추가할 것",
                     "2. 필요시 단어를 변형할 것 (수일치, 격변화, 어형 변형)"
                 ],
                 "functional_words_detail": [
@@ -311,7 +311,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
                 "full_sentence": "Utilizing willow trees with extensive root systems allows us to naturally extract toxic substances from polluted soil without incurring high costs of landfill transportation.",
                 "given_words": ["allow", "we", "toxic", "natural", "extract", "incur", "high", "polluted", "cost", "soil", "without", "substance"],
                 "conditions": [
-                    "1. 어법상 기능어 반드시 추가할 것 (to부정사 및 전치사 from 추가)",
+                    "1. 어법상 기능어 반드시 추가할 것",
                     "2. 필요시 단어를 변형할 것 (수일치, 격변화, 품사 변형 및 동명사)"
                 ],
                 "functional_words_detail": [
@@ -349,7 +349,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
                 "full_sentence": "To break an unwanted habit, it is crucial not to eliminate the cue but to consciously replace the old routine while maintaining the same reward.",
                 "given_words": ["cue", "maintain", "reward", "eliminate", "the", "routine", "old", "crucial", "replace", "conscious", "same", "while"],
                 "conditions": [
-                    "1. 어법상 기능어 반드시 추가할 것 (not ~ but ~ 병렬 to부정사)",
+                    "1. 어법상 기능어 반드시 추가할 것",
                     "2. 필요시 단어를 변형할 것 (부사형 및 분사 변형)"
                 ],
                 "functional_words_detail": [
@@ -378,7 +378,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
                 "full_sentence": "A habit loop becomes deeply ingrained as the cue and reward become intertwined with a craving that drives the routine automatically.",
                 "given_words": ["cue", "reward", "that", "intertwine", "drive", "routine", "as", "the", "a", "become", "craving"],
                 "conditions": [
-                    "1. 어법상 기능어 반드시 추가할 것 (전치사 with 및 접속사 and 추가)",
+                    "1. 어법상 기능어 반드시 추가할 것",
                     "2. 필요시 단어를 변형할 것 (과거분사 수동태, 관계사절 수일치)"
                 ],
                 "functional_words_detail": [
@@ -407,7 +407,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
                 "full_sentence": "Modifying the routine while preserving the trigger and reward enables individuals to reform their behavior more effectively.",
                 "given_words": ["individual", "reward", "trigger", "preserve", "enable", "reform", "the", "their", "behavior"],
                 "conditions": [
-                    "1. 어법상 기능어 반드시 추가할 것 (to부정사 및 접속사 and 추가)",
+                    "1. 어법상 기능어 반드시 추가할 것",
                     "2. 필요시 단어를 변형할 것 (분사구문, 3인칭 단수 동사, 복수형)"
                 ],
                 "functional_words_detail": [
@@ -441,7 +441,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
             "full_sentence": "Greenwashing is the deceptive practice that allows companies to present a false eco-friendly image while misleading consumers with vague and unverified claims.",
             "given_words": ["eco-friendly", "allow", "while", "companies", "image", "mislead", "that", "present", "consumers", "a", "false"],
             "conditions": [
-                "1. 어법상 기능어 반드시 추가할 것 (필요시 to부정사, 전치사 등)",
+                "1. 어법상 기능어 반드시 추가할 것",
                 "2. 필요시 단어를 변형할 것 (수일치, 분사 변형 등)"
             ],
             "functional_words_detail": [
@@ -470,7 +470,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
             "full_sentence": "In summary, it is unethical for corporations to disguise their products as green without demonstrating genuine commitment to environmental protection.",
             "given_words": ["green", "corporations", "disguise", "demonstrate", "genuine", "it", "commitment", "as", "their", "without", "product", "unethical"],
             "conditions": [
-                "1. 어법상 기능어 반드시 추가할 것 (가주어-진주어 의미상 주어 및 to부정사)",
+                "1. 어법상 기능어 반드시 추가할 것",
                 "2. 필요시 단어를 변형할 것 (전치사 뒤 동명사, 복수형 명사)"
             ],
             "added_functional_words": ["for", "to"],
@@ -493,7 +493,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
             "full_sentence": "Deceptive eco-friendly marketing not only undermines consumer trust but also diverts attention away from genuine solutions for environmental protection.",
             "given_words": ["divert", "genuine", "solution", "consumer", "not", "but", "also", "undermine", "trust", "attention", "only"],
             "conditions": [
-                "1. 어법상 기능어 반드시 추가할 것 (전치사 away from 추가)",
+                "1. 어법상 기능어 반드시 추가할 것",
                 "2. 필요시 단어를 변형할 것 (3인칭 단수 동사 수일치, 복수형 명사)"
             ],
             "added_functional_words": ["away from"],
