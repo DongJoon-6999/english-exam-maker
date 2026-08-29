@@ -234,7 +234,7 @@ def generate_problems(req: GenerateRequest):
         raise HTTPException(status_code=500, detail=f"문제 생성 실패: {str(e)}")
 
 # Mount static files
-static_dir = os.path.join(os.path.dirname(__file__), "static")
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
