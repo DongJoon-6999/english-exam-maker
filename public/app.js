@@ -206,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
           passage: passage,
           target_grammar: targetGrammarInput.value.trim(),
           target_vocab: targetVocabInput.value.trim(),
-          provider: key ? state.provider : 'mock',
+          provider: state.provider,
           api_key: key,
           model_name: model,
           candidate_count: state.candidateCount
@@ -231,8 +231,12 @@ document.addEventListener('DOMContentLoaded', () => {
       resultView.classList.remove('hidden');
       resultView.classList.add('flex');
 
-      if (resData.provider === 'mock' && state.provider !== 'mock' && !key) {
-        showToast('API Key가 없어 모의(Mock) 샘플 문제로 생성되었습니다. [AI 설정]에서 키를 등록할 수 있습니다.');
+      if (resData.provider === 'gemini') {
+        showToast('Gemini AI로 서술형 요약 문제가 성공적으로 생성되었습니다!');
+      } else if (resData.provider === 'claude') {
+        showToast('Claude AI로 서술형 요약 문제가 성공적으로 생성되었습니다!');
+      } else if (resData.provider === 'openai') {
+        showToast('OpenAI로 서술형 요약 문제가 성공적으로 생성되었습니다!');
       } else {
         showToast('서술형 요약 문제가 성공적으로 생성되었습니다!');
       }
