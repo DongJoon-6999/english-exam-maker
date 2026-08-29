@@ -5,44 +5,57 @@ import requests
 from typing import Dict, Any, List, Optional
 
 SYSTEM_PROMPT = """You are an expert Korean High School English Teacher and CSAT (수능) / School Exam (내신) Item Writer.
-Your task is to analyze an English reading passage (모의고사/교과서 지문) and generate authentic, high-caliber Korean High School subjective summary-completion test questions (고등학교 영어 서술형 요약문 빈칸 완성 문항).
+Your task is to analyze an English reading passage (모의고사/교과서 지문) and generate authentic Korean High School subjective summary-completion test questions (고등학교 영어 서술형 요약문 빈칸 완성 문항) tailored to specific difficulty levels.
 
-### Problem Format & Rules (Matching real Korean High School Mock Exam style):
+### Difficulty Levels & Context Guidelines:
+- **intro (입문 / 고1 기초)**:
+  * Summary Sentence scaffolding: Provide plenty of context before and after the blank. The blank is short (4~6 words) and tests straightforward, intuitive grammar (e.g. basic relative pronoun 'that/which', simple 'to-V').
+  * Minimal missing functional words (0~1 word omitted).
+- **basic (기본 / 고1~고2 표준)**:
+  * Standard Korean high school exam level.
+  * Blank length is 6~8 words. Tests standard 5-verb patterns (allow/enable/encourage O to V), participial phrases, or that-clauses.
+  * 1~2 functional words omitted (e.g. 'to', 'for', 'that').
+- **advanced (실전 / 고2~고3 심화)**:
+  * High-school Mock Exam 3-point question level.
+  * Blank length is 8~10 words. Requires synthetic thinking with 2~3 base-form modifications (e.g., active/passive participle, tense/agreement, gerund subject).
+  * 1~3 functional words omitted.
+- **killer (최상위 킬러 / 1등급 변별용)**:
+  * CSAT / High School 1st-grade separator question.
+  * Blank length is 9~14 words. Tests complex structures (e.g., inversion, Not only A but also B, with+noun+participle, double clauses).
+  * Minimal prefix/suffix hints, demanding sophisticated syntactic construction.
+
+### Problem Format & Rules:
 1. **Direction (지시문)**:
    "■ 윗글의 내용을 한 문장으로 요약하고자 한다. <보기>에 주어진 단어를 활용하여 빈칸 (A)에 들어갈 말을 영어로 쓰시오. (단, <조건>에 맞게 쓸 것)"
 
-2. **Summary Sentence (요약문)**:
-   - A single, grammatically flawless, sophisticated academic English sentence that summarizes the core theme of the passage.
-   - The sentence must clearly contain a target blank area `(A)`.
-   - The sentence should naturally center around the requested target grammar (e.g., 관계대명사, 분사구문, 가주어-진주어, not only A but also B, 5형식 사역/지각/유도동사 등) and requested target vocabulary.
-   - The blank `(A)` must be a meaningful clause or verbal phrase (typically 8~14 words) requiring grammatical structuring.
-
-3. **<단어> (Given Words List)**:
-   - Extract the words composing the blank `(A)`.
-   - Convert inflected verbs, nouns, adjectives to their **base/lemma forms** (e.g. 'allows' -> 'allow', 'misleading' -> 'mislead', 'planting' -> 'plant', 'explored' -> 'explore', 'effectively' -> 'effective').
-   - Deliberately **OMIT 1~2 functional words** (such as infinitive 'to', prepositions like 'in/for/with', relative pronouns, or conjunctions) so the student MUST add them according to Condition 1.
+2. **<단어> (Given Words List)**:
+   - Extract the words composing the blank `(A)` and convert inflected words to **base/lemma forms**.
    - Shuffle all words in random order, separated by ' / '.
 
-4. **<조건> (Conditions)**:
-   Standard conditions:
-   "1. 어법상 기능어 반드시 추가할 것 (필요시 to부정사, 전치사, 접속사, 관사 등 추가)"
-   "2. 필요시 단어를 변형할 것 (수일치, 시제, 분사, 품사 변형 등)"
+3. **<조건> (Conditions)**:
+   - "1. 어법상 기능어 반드시 추가할 것 (필요시 to부정사, 전치사, 접속사, 관계사 등 추가)"
+   - "2. 필요시 단어를 변형할 것 (수일치, 시제, 분사, 품사 변형 등)"
 
-5. **Answer & Detailed Analysis**:
-   - `full_sentence`: Complete sentence
-   - `blank_answer`: The exact string that goes into `(A)`
-   - `translation_korean`: Natural Korean translation of the summary sentence
-   - `grammar_points`: Core grammar concepts tested (e.g., "5형식 동사 allow + 목적어 + to부정사", "while + 현재분사 분사구문")
-   - `word_modifications`: Breakdown of base form -> modified form and added functional words.
-
-You must output valid JSON containing 2 to 3 distinct candidate questions (with different grammatical structures or thematic angles).
+4. **Detailed Functional Words Breakdown**:
+   - Provide a list of all functional words (that, to, while, by, for, which, etc.) used in the blank, their grammatical roles, and whether they were omitted from the given words list.
 """
 
-def get_gemini_prompt(passage: str, target_grammar: str = "", target_vocab: str = "", candidate_count: int = 3) -> str:
-    grammar_instruction = f"- Focus Grammar to utilize: {target_grammar}" if target_grammar else "- Focus Grammar: Automatically identify and use the most crucial advanced grammar structure (e.g., 관계대명사, 분사구문, 가주어/진주어, 5형식 구문 등) suitable for Korean high school exam."
-    vocab_instruction = f"- Key Vocabulary to include: {target_vocab}" if target_vocab else "- Key Vocabulary: Automatically extract the most important keywords from the passage."
+def get_gemini_prompt(passage: str, target_grammar: str = "", target_vocab: str = "", candidate_count: int = 3, difficulty: str = "basic") -> str:
+    diff_labels = {
+        "intro": "입문 (초급 - 풍부한 문맥 힌트, 짧은 빈칸 4~6단어, 기초 문법)",
+        "basic": "기본 (표준 - 고1~고2 일반 내신 수준, 6~8단어 빈칸, 5형식/관계사/분사)",
+        "advanced": "실전 (심화 - 고2~고3 3점 서술형 수준, 8~10단어 빈칸, 조건부 어형변형)",
+        "killer": "최상위 킬러 (고난도 - 고3/1등급 변별용, 9~14단어 복합구문, 도치/상관접속사)"
+    }
+    diff_desc = diff_labels.get(difficulty, diff_labels["basic"])
+    
+    grammar_instruction = f"- Focus Grammar to utilize: {target_grammar}" if target_grammar else "- Focus Grammar: Automatically select the most relevant grammar structure suitable for this passage."
+    vocab_instruction = f"- Key Vocabulary to include: {target_vocab}" if target_vocab else "- Key Vocabulary: Automatically extract the key subject words from the passage."
 
     return f"""Please generate {candidate_count} distinct high-school exam subjective summary questions for the following English passage.
+
+[Target Difficulty Level / 출제 난이도]:
+{diff_desc}
 
 [Passage / 영어 지문]:
 \"\"\"
@@ -58,23 +71,38 @@ Output your response strictly as a JSON object adhering to this schema:
   "candidates": [
     {{
       "candidate_id": 1,
+      "difficulty": "{difficulty}",
       "theme_title": "요약 주제 요약 (한국어 한 줄)",
-      "target_grammar_used": "적용된 핵심 문법 (예: 주격 관계대명사 that + while 분사구문)",
+      "target_grammar_used": "적용된 핵심 문법 (예: 5형식 enable + 목적어 + to부정사)",
       "target_vocab_used": "활용된 핵심 어휘 목록",
       "direction": "■ 윗글의 내용을 한 문장으로 요약하고자 한다. <보기>에 주어진 단어를 활용하여 빈칸 (A)에 들어갈 말을 영어로 쓰시오. (단, <조건>에 맞게 쓸 것)",
-      "sentence_prefix": "요약문 앞부분 (빈칸 앞)",
+      "sentence_prefix": "요약문 앞부분 (빈칸 앞 문맥)",
       "blank_answer": "빈칸 (A)의 정답 영어 문구",
-      "sentence_suffix": "요약문 뒷부분 (빈칸 뒤, 없으면 빈 문자열)",
+      "sentence_suffix": "요약문 뒷부분 (빈칸 뒤 문맥, 없으면 빈 문자열)",
       "full_sentence": "완성된 전체 요약문 영어 문장",
       "given_words": ["단어1(원형)", "단어2(원형)", "단어3", "... (무작위 순서)"],
       "conditions": [
         "1. 어법상 기능어 반드시 추가할 것",
         "2. 필요시 단어를 변형할 것"
       ],
-      "added_functional_words": ["학생이 직접 추가해야 하는 기능어 (예: to, of, for 등)"],
+      "functional_words_detail": [
+        {{
+          "word": "to",
+          "role": "to부정사 표지 (목적격보어)",
+          "omitted_from_given": true,
+          "reason": "5형식 동사 뒤 목적격 보어 to부정사"
+        }},
+        {{
+          "word": "that",
+          "role": "주격 관계대명사",
+          "omitted_from_given": true,
+          "reason": "선행사를 수식하는 관계사절 유도"
+        }}
+      ],
+      "added_functional_words": ["to", "that"],
       "modified_words": [
-        {{"base": "allow", "modified": "allows", "reason": "선행사 단수 주어에 따른 수일치"}},
-        {{"base": "mislead", "modified": "misleading", "reason": "접속사 while 뒤 분사구문 현재분사"}}
+        {{"base": "enable", "modified": "enables", "reason": "단수 주어에 따른 수일치"}},
+        {{"base": "restore", "modified": "restore", "reason": "to부정사 뒤 동사원형"}}
       ],
       "translation_korean": "전체 요약문의 자연스러운 한국어 번역",
       "grammar_explanation": "출제 의도 및 문법 포인트에 대한 상세 해설 (한국어)"
@@ -83,9 +111,9 @@ Output your response strictly as a JSON object adhering to this schema:
 }}
 """
 
-def generate_with_gemini(api_key: str, passage: str, target_grammar: str = "", target_vocab: str = "", model_name: str = "gemini-3.6-flash", candidate_count: int = 3) -> Dict[str, Any]:
+def generate_with_gemini(api_key: str, passage: str, target_grammar: str = "", target_vocab: str = "", model_name: str = "gemini-3.6-flash", candidate_count: int = 3, difficulty: str = "basic") -> Dict[str, Any]:
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
-    prompt_text = get_gemini_prompt(passage, target_grammar, target_vocab, candidate_count)
+    prompt_text = get_gemini_prompt(passage, target_grammar, target_vocab, candidate_count, difficulty)
 
     payload = {
         "contents": [
@@ -120,9 +148,9 @@ def generate_with_gemini(api_key: str, passage: str, target_grammar: str = "", t
     except Exception as e:
         raise ValueError(f"Failed to parse Gemini response: {e}\nRaw: {data}")
 
-def generate_with_openai(api_key: str, passage: str, target_grammar: str = "", target_vocab: str = "", model_name: str = "gpt-4o-mini", candidate_count: int = 3) -> Dict[str, Any]:
+def generate_with_openai(api_key: str, passage: str, target_grammar: str = "", target_vocab: str = "", model_name: str = "gpt-4o-mini", candidate_count: int = 3, difficulty: str = "basic") -> Dict[str, Any]:
     url = "https://api.openai.com/v1/chat/completions"
-    prompt_text = get_gemini_prompt(passage, target_grammar, target_vocab, candidate_count)
+    prompt_text = get_gemini_prompt(passage, target_grammar, target_vocab, candidate_count, difficulty)
 
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -157,9 +185,9 @@ def generate_with_openai(api_key: str, passage: str, target_grammar: str = "", t
     except Exception as e:
         raise ValueError(f"Failed to parse OpenAI response: {e}\nRaw: {data}")
 
-def generate_with_claude(api_key: str, passage: str, target_grammar: str = "", target_vocab: str = "", model_name: str = "claude-3-7-sonnet-20250219", candidate_count: int = 3) -> Dict[str, Any]:
+def generate_with_claude(api_key: str, passage: str, target_grammar: str = "", target_vocab: str = "", model_name: str = "claude-3-7-sonnet-20250219", candidate_count: int = 3, difficulty: str = "basic") -> Dict[str, Any]:
     url = "https://api.anthropic.com/v1/messages"
-    prompt_text = get_gemini_prompt(passage, target_grammar, target_vocab, candidate_count)
+    prompt_text = get_gemini_prompt(passage, target_grammar, target_vocab, candidate_count, difficulty)
 
     headers = {
         "x-api-key": api_key,
@@ -204,9 +232,8 @@ def clean_and_parse_json(text: str) -> Dict[str, Any]:
         text = text[:-3]
     text = text.strip()
     return json.loads(text)
-
-def generate_mock_candidates(passage: str, target_grammar: str = "", target_vocab: str = "", candidate_count: int = 3) -> Dict[str, Any]:
-    """Fallback sample generator reflecting the user's uploaded images."""
+def generate_mock_candidates(passage: str, target_grammar: str = "", target_vocab: str = "", candidate_count: int = 3, difficulty: str = "basic") -> Dict[str, Any]:
+    """Fallback sample generator reflecting the user's uploaded images and difficulty levels."""
     is_soil_passage = "willow" in passage.lower() or "soil" in passage.lower() or "purifying" in passage.lower()
     is_habit_passage = "habit" in passage.lower() or "routine" in passage.lower() or "cue" in passage.lower()
 
@@ -214,6 +241,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
         all_candidates = [
             {
                 "candidate_id": 1,
+                "difficulty": difficulty,
                 "theme_title": "버드나무의 특성을 활용한 친환경적 토양 정화",
                 "target_grammar_used": "to부정사의 형용사적 용법 + 분사구문 (extracting)",
                 "target_vocab_used": "eco-friendly, restore, extensive, extract, harmful",
@@ -227,6 +255,11 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
                     "1. 어법상 기능어 반드시 추가할 것 (필요시 to부정사/전치사 등)",
                     "2. 필요시 단어를 변형할 것 (어형 및 분사 변형)"
                 ],
+                "functional_words_detail": [
+                    {"word": "to", "role": "to부정사 표지 (형용사적 용법)", "omitted_from_given": True, "reason": "명사 way를 수식하는 to부정사"},
+                    {"word": "while", "role": "분사구문 접속사", "omitted_from_given": False, "reason": "동시동작을 나타내는 접속사"},
+                    {"word": "an", "role": "부정관사", "omitted_from_given": False, "reason": "단수 명사구 앞 관사"}
+                ],
                 "added_functional_words": ["to"],
                 "modified_words": [
                     {"base": "extract", "modified": "extracting", "reason": "while 접속사 뒤 능동의 분사구문 (현재분사)"},
@@ -238,6 +271,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
             },
             {
                 "candidate_id": 2,
+                "difficulty": difficulty,
                 "theme_title": "오염 물질 흡수 능력을 지닌 버드나무 품종 탐구의 필요성",
                 "target_grammar_used": "관계대명사 that + 5형식 enable A to B",
                 "target_vocab_used": "species, absorb, enable, clean up, promising",
@@ -251,6 +285,10 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
                     "1. 어법상 기능어 반드시 추가할 것 (필요시 to부정사/전치사 등)",
                     "2. 필요시 단어를 변형할 것 (수일치, 격변화, 어형 변형)"
                 ],
+                "functional_words_detail": [
+                    {"word": "to", "role": "to부정사 표지 (목적격 보어)", "omitted_from_given": True, "reason": "5형식 enable의 목적격 보어 to부정사"},
+                    {"word": "that", "role": "주격 관계대명사", "omitted_from_given": False, "reason": "선행사 willow species 수식"}
+                ],
                 "added_functional_words": ["to"],
                 "modified_words": [
                     {"base": "enable", "modified": "enables", "reason": "주어 Further exploration(단수)에 따른 단수 동사 수일치"},
@@ -262,6 +300,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
             },
             {
                 "candidate_id": 3,
+                "difficulty": difficulty,
                 "theme_title": "기존 매립 방식의 한계와 버드나무 식재의 경제적 대안",
                 "target_grammar_used": "5형식 동사 allow + O + to-V + without 전치사 동명사",
                 "target_vocab_used": "utilize, extensive, allow, extract, incur",
@@ -274,6 +313,11 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
                 "conditions": [
                     "1. 어법상 기능어 반드시 추가할 것 (to부정사 및 전치사 from 추가)",
                     "2. 필요시 단어를 변형할 것 (수일치, 격변화, 품사 변형 및 동명사)"
+                ],
+                "functional_words_detail": [
+                    {"word": "to", "role": "to부정사 표지 (목적격 보어)", "omitted_from_given": True, "reason": "5형식 동사 allow 뒤 목적격 보어"},
+                    {"word": "from", "role": "출처의 전치사", "omitted_from_given": True, "reason": "extract A from B 구문"},
+                    {"word": "without", "role": "전치사", "omitted_from_given": False, "reason": "조건/부정의 전치사"}
                 ],
                 "added_functional_words": ["to", "from"],
                 "modified_words": [
@@ -294,6 +338,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
         all_candidates = [
             {
                 "candidate_id": 1,
+                "difficulty": difficulty,
                 "theme_title": "기존 루틴의 의식적 대체를 통한 습관 변화",
                 "target_grammar_used": "가주어-진주어 not to A but to B + while 분사구문",
                 "target_vocab_used": "crucial, eliminate, consciously, replace, maintain",
@@ -307,6 +352,11 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
                     "1. 어법상 기능어 반드시 추가할 것 (not ~ but ~ 병렬 to부정사)",
                     "2. 필요시 단어를 변형할 것 (부사형 및 분사 변형)"
                 ],
+                "functional_words_detail": [
+                    {"word": "not to", "role": "진주어 부정 to부정사", "omitted_from_given": True, "reason": "not A but B 병렬 구조 to부정사"},
+                    {"word": "but to", "role": "접속사 + to부정사", "omitted_from_given": True, "reason": "not A but B 병렬 구조 to부정사"},
+                    {"word": "while", "role": "분사구문 접속사", "omitted_from_given": False, "reason": "동시동작 접속사"}
+                ],
                 "added_functional_words": ["not to", "but to"],
                 "modified_words": [
                     {"base": "conscious", "modified": "consciously", "reason": "동사 replace를 수식하는 부사형"},
@@ -317,6 +367,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
             },
             {
                 "candidate_id": 2,
+                "difficulty": difficulty,
                 "theme_title": "습관 루프의 자동화 메커니즘과 갈망 형성",
                 "target_grammar_used": "접속사 as + become intertwined with + 분사",
                 "target_vocab_used": "automatic, neurological, intertwined, craving, reinforce",
@@ -330,6 +381,11 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
                     "1. 어법상 기능어 반드시 추가할 것 (전치사 with 및 접속사 and 추가)",
                     "2. 필요시 단어를 변형할 것 (과거분사 수동태, 관계사절 수일치)"
                 ],
+                "functional_words_detail": [
+                    {"word": "with", "role": "연결 전치사", "omitted_from_given": True, "reason": "intertwined with 숙어 표현"},
+                    {"word": "and", "role": "등위접속사", "omitted_from_given": True, "reason": "the cue와 reward 연결"},
+                    {"word": "that", "role": "주격 관계대명사", "omitted_from_given": False, "reason": "a craving 수식"}
+                ],
                 "added_functional_words": ["and", "with"],
                 "modified_words": [
                     {"base": "intertwine", "modified": "intertwined", "reason": "become 뒤 과거분사 보어"},
@@ -340,6 +396,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
             },
             {
                 "candidate_id": 3,
+                "difficulty": difficulty,
                 "theme_title": "성공적인 습관 교정을 위한 핵심 전략",
                 "target_grammar_used": "동명사 주어 Modifying + 5형식 enable A to B",
                 "target_vocab_used": "modify, preserve, enable, reform, successfully",
@@ -352,6 +409,10 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
                 "conditions": [
                     "1. 어법상 기능어 반드시 추가할 것 (to부정사 및 접속사 and 추가)",
                     "2. 필요시 단어를 변형할 것 (분사구문, 3인칭 단수 동사, 복수형)"
+                ],
+                "functional_words_detail": [
+                    {"word": "to", "role": "to부정사 표지 (목적격 보어)", "omitted_from_given": True, "reason": "enable + O + to-V 구조"},
+                    {"word": "and", "role": "등위접속사", "omitted_from_given": True, "reason": "the trigger and reward 병렬 연결"}
                 ],
                 "added_functional_words": ["and", "to"],
                 "modified_words": [
@@ -369,6 +430,7 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
     all_candidates = [
         {
             "candidate_id": 1,
+            "difficulty": difficulty,
             "theme_title": "그린워싱의 본질과 소비자를 오도하는 기만적 마케팅",
             "target_grammar_used": "주격 관계대명사 that + 5형식 allow + O + to-V + while 분사구문",
             "target_vocab_used": "deceptive, allow, present, false, eco-friendly, mislead, vague, unverified",
@@ -381,6 +443,12 @@ def generate_mock_candidates(passage: str, target_grammar: str = "", target_voca
             "conditions": [
                 "1. 어법상 기능어 반드시 추가할 것 (필요시 to부정사, 전치사 등)",
                 "2. 필요시 단어를 변형할 것 (수일치, 분사 변형 등)"
+            ],
+            "functional_words_detail": [
+                {"word": "to", "role": "to부정사 표지 (목적격 보어)", "omitted_from_given": True, "reason": "5형식 동사 allow + 목적어 + to부정사"},
+                {"word": "that", "role": "주격 관계대명사", "omitted_from_given": False, "reason": "the deceptive practice 수식"},
+                {"word": "while", "role": "분사구문 접속사", "omitted_from_given": False, "reason": "동시동작 나타냄"},
+                {"word": "a", "role": "부정관사", "omitted_from_given": False, "reason": "단수 명사구 앞 관사"}
             ],
             "added_functional_words": ["to"],
             "modified_words": [

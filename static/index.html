@@ -102,6 +102,35 @@
           <input type="text" id="target-vocab-input" placeholder="예: deceptive, restore, extract, eco-friendly" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
         </div>
 
+        <!-- Difficulty Selection (4 Levels) -->
+        <div class="space-y-1.5 pt-1">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-slate-700 flex items-center space-x-1.5 whitespace-nowrap">
+              <i data-lucide="gauge" class="w-3.5 h-3.5 text-indigo-500"></i>
+              <span>출제 난이도 설정</span>
+            </label>
+            <span id="difficulty-desc" class="text-[11px] text-indigo-600 font-medium whitespace-nowrap">고1~고2 표준 내신</span>
+          </div>
+          <div class="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl text-center">
+            <button type="button" class="difficulty-btn py-1.5 px-1 text-xs rounded-lg font-medium text-slate-600 hover:text-slate-900 transition" data-diff="intro">
+              <span class="block font-bold">입문</span>
+              <span class="text-[10px] text-slate-400 block -mt-0.5 whitespace-nowrap">고1 기초</span>
+            </button>
+            <button type="button" class="difficulty-btn active py-1.5 px-1 text-xs rounded-lg font-bold bg-white text-indigo-600 shadow-sm transition" data-diff="basic">
+              <span class="block font-bold">기본</span>
+              <span class="text-[10px] text-indigo-400 block -mt-0.5 whitespace-nowrap">표준 내신</span>
+            </button>
+            <button type="button" class="difficulty-btn py-1.5 px-1 text-xs rounded-lg font-medium text-slate-600 hover:text-slate-900 transition" data-diff="advanced">
+              <span class="block font-bold">실전</span>
+              <span class="text-[10px] text-slate-400 block -mt-0.5 whitespace-nowrap">3점 심화</span>
+            </button>
+            <button type="button" class="difficulty-btn py-1.5 px-1 text-xs rounded-lg font-medium text-slate-600 hover:text-slate-900 transition" data-diff="killer">
+              <span class="block font-bold">킬러</span>
+              <span class="text-[10px] text-slate-400 block -mt-0.5 whitespace-nowrap">1등급 변별</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Candidate Count and Generate Action -->
         <div class="pt-2 flex items-center space-x-3">
           <div class="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl shrink-0">
@@ -122,10 +151,10 @@
       <div class="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 text-xs text-indigo-900 space-y-2">
         <div class="font-bold flex items-center space-x-1.5 text-indigo-700">
           <i data-lucide="info" class="w-4 h-4"></i>
-          <span>출제 포맷 안내</span>
+          <span>출제 포맷 및 난이도 안내</span>
         </div>
         <p class="leading-relaxed text-indigo-800/80">
-          고등학교 모의고사 및 내신 서술형 킬러 문항과 동일하게 <strong>[요약문 빈칸 완성] + [단어 원형 나열] + [기능어 추가 및 어형 변형 조건]</strong>으로 구성된 완벽한 문제를 제작합니다.
+          난이도에 따라 요약문의 문맥 힌트와 빈칸 길이가 자동 조절되며, 문제 생성 후 <strong>어법 기능어 칩을 켜고 끄며 &lt;보기&gt; 포함 여부를 자유롭게 조절</strong>할 수 있습니다.
         </p>
       </div>
     </section>
@@ -181,6 +210,20 @@
               <i data-lucide="file-check" class="w-3.5 h-3.5"></i>
               <span>전체 복사</span>
             </button>
+          </div>
+        </div>
+
+        <!-- Interactive Functional Words (기능어 난이도 미세조정 패널) -->
+        <div id="functional-words-panel" class="bg-gradient-to-r from-indigo-50/90 via-blue-50/70 to-slate-50 border border-indigo-100 rounded-xl p-3.5 space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-1">
+            <div class="flex items-center space-x-1.5 text-xs font-bold text-indigo-950">
+              <i data-lucide="sliders-horizontal" class="w-4 h-4 text-indigo-600"></i>
+              <span>어법상 기능어 힌트 조절 (&lt;보기&gt; 포함 여부 토글)</span>
+            </div>
+            <span class="text-[11px] text-indigo-700 font-medium">💡 체크된 단어는 &lt;보기&gt;에 직접 제공되어 문제가 쉬워집니다</span>
+          </div>
+          <div id="functional-words-chips" class="flex flex-wrap gap-1.5 pt-0.5">
+            <!-- Dynamic interactive chips like [☑ that (관계사)] [☐ to (to부정사)] -->
           </div>
         </div>
 

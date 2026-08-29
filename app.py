@@ -27,6 +27,7 @@ class GenerateRequest(BaseModel):
     api_key: Optional[str] = Field("", description="User API Key")
     model_name: Optional[str] = Field("gemini-3.6-flash", description="Model identifier")
     candidate_count: Optional[int] = Field(3, description="Number of problem candidates")
+    difficulty: Optional[str] = Field("basic", description="Difficulty level: intro | basic | advanced | killer")
 
 class TestKeyRequest(BaseModel):
     provider: str
@@ -194,10 +195,12 @@ def generate_problems(req: GenerateRequest):
         elif provider == "openai":
             api_key = os.getenv("OPENAI_API_KEY", "").strip()
 
+    difficulty = req.difficulty or "basic"
+
     # If still no API key provided or provider is mock, fallback to smart mock generator
     if not api_key or provider == "mock":
         try:
-            result = generate_mock_candidates(req.passage, req.target_grammar, req.target_vocab, candidate_count=req.candidate_count or 3)
+            result = generate_mock_candidates(req.passage, req.target_grammar, req.target_vocab, candidate_count=req.candidate_count or 3, difficulty=difficulty)
             return {"success": True, "provider": "mock", "data": result}
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Mock 생성 오류: {str(e)}")
@@ -211,7 +214,8 @@ def generate_problems(req: GenerateRequest):
                 target_grammar=req.target_grammar or "",
                 target_vocab=req.target_vocab or "",
                 model_name=model,
-                candidate_count=req.candidate_count or 3
+                candidate_count=req.candidate_count or 3,
+                difficulty=difficulty
             )
             return {"success": True, "provider": "gemini", "data": result}
 
@@ -223,7 +227,8 @@ def generate_problems(req: GenerateRequest):
                 target_grammar=req.target_grammar or "",
                 target_vocab=req.target_vocab or "",
                 model_name=model,
-                candidate_count=req.candidate_count or 3
+                candidate_count=req.candidate_count or 3,
+                difficulty=difficulty
             )
             return {"success": True, "provider": "claude", "data": result}
 
@@ -235,11 +240,12 @@ def generate_problems(req: GenerateRequest):
                 target_grammar=req.target_grammar or "",
                 target_vocab=req.target_vocab or "",
                 model_name=model,
-                candidate_count=req.candidate_count or 3
+                candidate_count=req.candidate_count or 3,
+                difficulty=difficulty
             )
             return {"success": True, "provider": "openai", "data": result}
         else:
-            result = generate_mock_candidates(req.passage, req.target_grammar, req.target_vocab)
+            result = generate_mock_candidates(req.passage, req.target_grammar, req.target_vocab, candidate_count=req.candidate_count or 3, difficulty=difficulty)
             return {"success": True, "provider": "mock", "data": result}
 
     except Exception as e:
