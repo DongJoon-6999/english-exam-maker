@@ -111,7 +111,7 @@ Output your response strictly as a JSON object adhering to this schema:
 }}
 """
 
-def generate_with_gemini(api_key: str, passage: str, target_grammar: str = "", target_vocab: str = "", model_name: str = "gemini-3.6-flash", candidate_count: int = 3, difficulty: str = "basic") -> Dict[str, Any]:
+def generate_with_gemini(api_key: str, passage: str, target_grammar: str = "", target_vocab: str = "", model_name: str = "gemini-3.5-flash-lite", candidate_count: int = 3, difficulty: str = "basic") -> Dict[str, Any]:
     prompt_text = get_gemini_prompt(passage, target_grammar, target_vocab, candidate_count, difficulty)
     payload = {
         "contents": [
@@ -128,23 +128,23 @@ def generate_with_gemini(api_key: str, passage: str, target_grammar: str = "", t
         }
     }
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={api_key}"
-    
-    # Retry up to 2 times if rate-limited
-    import time
-    for attempt in range(2):
+    # Pool of active Google models with independent free-tier quotas
+    models_pool = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash"]
+    if model_name and model_name not in models_pool:
+        models_pool.insert(0, model_name)
+
+    last_error_msg = ""
+    for m_name in models_pool:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{m_name}:generateContent?key={api_key}"
         try:
-            response = requests.post(url, json=payload, timeout=90)
+            response = requests.post(url, json=payload, timeout=60)
             if response.status_code == 200:
                 data = response.json()
                 raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
                 return clean_and_parse_json(raw_text)
             elif response.status_code == 429:
-                if attempt == 0:
-                    time.sleep(3) # Wait 3 seconds and retry once
-                    continue
-                else:
-                    raise RuntimeError("Google Gemini 무료 API의 1분당 호출 한도(20회/분)에 일시적으로 도달했습니다. 구글 정책상 약 30~50초 후 자동으로 리셋되므로, 잠시만 기다리신 후 다시 [서술형 문제 생성하기]를 눌러주세요.")
+                last_error_msg = f"Model {m_name} rate limit reached"
+                continue # Instantly try next model in pool
             else:
                 error_msg = response.text
                 try:
@@ -153,13 +153,13 @@ def generate_with_gemini(api_key: str, passage: str, target_grammar: str = "", t
                         error_msg = err_json["error"]["message"]
                 except Exception:
                     pass
-                raise RuntimeError(f"Gemini API Error ({response.status_code}): {error_msg}")
+                last_error_msg = error_msg
         except requests.exceptions.Timeout:
-            raise RuntimeError("Gemini API 서버 응답 시간 초과 (Timeout). 잠시 후 다시 시도해 주세요.")
+            continue
         except Exception as e:
-            if "Google Gemini 무료 API" in str(e) or "Gemini API Error" in str(e):
-                raise
-            raise RuntimeError(f"문제 생성 실패: {str(e)}")
+            last_error_msg = str(e)
+
+    raise RuntimeError(f"문제 생성 실패: Google AI 할당량이 일시적으로 소진되었습니다. ({last_error_msg}) 잠시 후 다시 시도해 주세요.")
 
 def generate_with_openai(api_key: str, passage: str, target_grammar: str = "", target_vocab: str = "", model_name: str = "gpt-4o-mini", candidate_count: int = 3, difficulty: str = "basic") -> Dict[str, Any]:
     url = "https://api.openai.com/v1/chat/completions"

@@ -25,14 +25,14 @@ class GenerateRequest(BaseModel):
     target_vocab: Optional[str] = Field("", description="Target vocabulary")
     provider: str = Field("gemini", description="AI provider: gemini | openai | mock")
     api_key: Optional[str] = Field("", description="User API Key")
-    model_name: Optional[str] = Field("gemini-3.6-flash", description="Model identifier")
+    model_name: Optional[str] = Field("gemini-3.5-flash-lite", description="Model identifier")
     candidate_count: Optional[int] = Field(3, description="Number of problem candidates")
     difficulty: Optional[str] = Field("basic", description="Difficulty level: intro | basic | advanced | killer")
 
 class TestKeyRequest(BaseModel):
     provider: str
     api_key: str
-    model_name: Optional[str] = "gemini-3.6-flash"
+    model_name: Optional[str] = "gemini-3.5-flash-lite"
 
 SAMPLE_PASSAGES = [
     {
@@ -207,7 +207,7 @@ def generate_problems(req: GenerateRequest):
 
     try:
         if provider == "gemini":
-            model = req.model_name or "gemini-3.6-flash"
+            model = req.model_name or "gemini-3.5-flash-lite"
             result = generate_with_gemini(
                 api_key=api_key,
                 passage=req.passage,
